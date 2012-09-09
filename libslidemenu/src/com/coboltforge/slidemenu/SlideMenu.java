@@ -240,8 +240,6 @@ public class SlideMenu extends LinearLayout {
 
         // connect the menu's listview
         ListView list = (ListView) act.findViewById(R.id.menu_listview);
-//        SlideMenuItem[] items = menuItemList.toArray(new SlideMenuItem[menuItemList.size()]);
-//        ListAdapter adap = new SlideMenuAdapter(act, items);
         list.setAdapter(mListAdapter);
         list.setOnItemClickListener(new OnItemClickListener() {
             @Override
