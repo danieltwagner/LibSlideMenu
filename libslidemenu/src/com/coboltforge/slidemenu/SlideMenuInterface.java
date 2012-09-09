@@ -24,6 +24,12 @@ package com.coboltforge.slidemenu;
 public interface SlideMenuInterface {
 	
 	interface OnSlideMenuItemClickListener {
-		public void onSlideMenuItemClick(long itemId);
+        /**
+         * Callback function for the selected item ID.
+         *
+         * @param itemId
+         * @return true if the menu should be hidden
+         */
+		public boolean onSlideMenuItemClick(long itemId);
 	}
 }

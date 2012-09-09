@@ -27,16 +27,18 @@ import android.graphics.Rect;
 import android.os.Bundle;
 import android.os.Parcelable;
 import android.util.AttributeSet;
-import android.util.TypedValue;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.Window;
+import android.view.animation.AccelerateDecelerateInterpolator;
+import android.view.animation.AccelerateInterpolator;
+import android.view.animation.Animation;
 import android.view.animation.TranslateAnimation;
 import android.widget.AdapterView;
 import android.widget.AdapterView.OnItemClickListener;
 import android.widget.FrameLayout;
-import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ListAdapter;
 import android.widget.ListView;
@@ -50,23 +52,31 @@ public class SlideMenu extends LinearLayout {
     private final static String KEY_STATUSBARHEIGHT = "statusBarHeight";
     private final static String KEY_SUPERSTATE = "superState";
 
-    public static final int DEFAULT_SLIDE_DURATION = 333;
+    public static final int DEFAULT_SLIDE_DURATION = 400;
     private int mSlideDuration = 0;
 
 
-    private static boolean menuShown = false;
+    public boolean isMenuShown() {
+        return menuShown;
+    }
+
+    private boolean menuShown = false;
     private int statusHeight;
     private static View menu;
     private static ViewGroup content;
     private static FrameLayout parent;
     private static int menuSize;
     private Activity act;
-    private int headerImageRes;
-    private TranslateAnimation slideRightAnim;
-    private TranslateAnimation slideMenuLeftAnim;
-    private TranslateAnimation slideContentLeftAnim;
+    private TranslateAnimation mSlideMenuRightAnim;
+    private TranslateAnimation mSlideMenuLeftAnim;
+    private TranslateAnimation mSlideContentLeftAnim;
+    private static final String TAG = SlideMenu.class.getSimpleName();
 
-//    private ArrayList<SlideMenuItem> menuItemList;
+    public void setCallback(SlideMenuInterface.OnSlideMenuItemClickListener callback) {
+        this.callback = callback;
+    }
+
+    //    private ArrayList<SlideMenuItem> menuItemList;
     private SlideMenuInterface.OnSlideMenuItemClickListener callback;
 
     private ListAdapter mListAdapter;
@@ -97,7 +107,7 @@ public class SlideMenu extends LinearLayout {
 
 
     /**
-     * Constructs a SlideMenu with the given menu XML.
+     * Constructs a SlideMenu.
      *
      * @param act The calling activity.
      */
@@ -114,8 +124,10 @@ public class SlideMenu extends LinearLayout {
     public void init(Activity act) {
         this.act = act;
 
+        menuSize = (int) (act.getResources().getDisplayMetrics().widthPixels * 0.80);
+
         // set size
-        menuSize = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 250, act.getResources().getDisplayMetrics());
+//        menuSize = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 250, act.getResources().getDisplayMetrics());
 
         setSlideDuration(DEFAULT_SLIDE_DURATION);
 
@@ -128,44 +140,36 @@ public class SlideMenu extends LinearLayout {
             return;
         }
         // create animations accordingly
-        slideRightAnim = new TranslateAnimation(-menuSize, 0, 0, 0);
-        slideRightAnim.setDuration(slideDuration);
-        slideRightAnim.setFillAfter(true);
-        slideMenuLeftAnim = new TranslateAnimation(0, -menuSize, 0, 0);
-        slideMenuLeftAnim.setDuration(slideDuration);
-        slideMenuLeftAnim.setFillAfter(true);
-        slideContentLeftAnim = new TranslateAnimation(menuSize, 0, 0, 0);
-        slideContentLeftAnim.setDuration(slideDuration);
-        slideContentLeftAnim.setFillAfter(true);
+        mSlideMenuRightAnim = new TranslateAnimation(-menuSize, 0, 0, 0);
+        mSlideMenuRightAnim.setDuration(slideDuration);
+        mSlideMenuRightAnim.setFillAfter(true);
+        mSlideMenuRightAnim.setInterpolator(new FadeInInterpolator());
+
+        mSlideMenuLeftAnim = new TranslateAnimation(0, -menuSize, 0, 0);
+        mSlideMenuLeftAnim.setDuration(slideDuration);
+        mSlideMenuLeftAnim.setFillAfter(true);
+        mSlideMenuLeftAnim.setInterpolator(new FadeOutInterpolator());
+        mSlideMenuLeftAnim.setAnimationListener(new Animation.AnimationListener() {
+            @Override
+            public void onAnimationStart(Animation animation) {
+            }
+
+            @Override
+            public void onAnimationEnd(Animation animation) {
+                parent.removeView(menu);
+            }
+
+            @Override
+            public void onAnimationRepeat(Animation animation) {
+            }
+        });
+
+        mSlideContentLeftAnim = new TranslateAnimation(menuSize, 0, 0, 0);
+        mSlideContentLeftAnim.setDuration(slideDuration);
+        mSlideContentLeftAnim.setFillAfter(true);
 
         mSlideDuration = slideDuration;
     }
-
-    /**
-     * Sets an optional image to be displayed on top of the menu.
-     *
-     * @param imageResource
-     */
-    public void setHeaderImage(int imageResource) {
-        headerImageRes = imageResource;
-    }
-
-
-//    /**
-//     * Dynamically adds a menu item.
-//     *
-//     * @param item
-//     */
-//    public void addMenuItem(SlideMenuItem item) {
-//        menuItemList.add(item);
-//    }
-//
-//
-//    /** Empties the SlideMenu. */
-//    public void clearMenuItems() {
-//        menuItemList.clear();
-//    }
-
 
     /** Slide the menu in. */
     public void show() {
@@ -178,7 +182,6 @@ public class SlideMenu extends LinearLayout {
     }
 
     private void show(boolean animate) {
-
         /*
            *  We have to adopt to status bar height in most cases,
            *  but not if there is a support actionbar!
@@ -193,6 +196,7 @@ public class SlideMenu extends LinearLayout {
                 applyStatusbarOffset();
             }
         } catch (Exception es) {
+            Log.d(TAG, "getSupportActionBar", es);
             // there is no support action bar!
             applyStatusbarOffset();
         }
@@ -215,26 +219,26 @@ public class SlideMenu extends LinearLayout {
 
         // animation for smooth slide-out
         if (animate)
-            content.startAnimation(slideRightAnim);
+            content.startAnimation(mSlideMenuRightAnim);
 
         // add the slide menu to parent
         parent = (FrameLayout) content.getParent();
         LayoutInflater inflater = (LayoutInflater) act.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
         menu = inflater.inflate(R.layout.slidemenu, null);
+
+        Log.d(TAG, "StatusBarHeight: " + statusHeight);
         FrameLayout.LayoutParams lays = new FrameLayout.LayoutParams(-1, -1, 3);
         lays.setMargins(0, statusHeight, 0, 0);
         menu.setLayoutParams(lays);
         parent.addView(menu);
 
-        // set header
-        try {
-            ImageView header = (ImageView) act.findViewById(R.id.menu_header);
-            header.setImageDrawable(act.getResources().getDrawable(headerImageRes));
-        } catch (Exception e) {
-            // not found
-        }
+        // Set the menu container size dynamically.
+        final View container = menu.findViewById(R.id.f_slidemenu_container);
+        final ViewGroup.LayoutParams layoutParams = container.getLayoutParams();
+        layoutParams.width = menuSize;
+        container.setLayoutParams(layoutParams);
 
-        if(mListAdapter == null) {
+        if (mListAdapter == null) {
             throw new RuntimeException("mListAdapter is null");
         }
 
@@ -244,16 +248,20 @@ public class SlideMenu extends LinearLayout {
         list.setOnItemClickListener(new OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                if (callback != null)
-                    callback.onSlideMenuItemClick(id);
-
-                hide();
+                if (callback != null) {
+                    if (callback.onSlideMenuItemClick(id)) {
+                        hide();
+                    }
+                } else {
+                    hide();
+                }
             }
         });
 
         // slide menu in
-        if (animate)
-            menu.startAnimation(slideRightAnim);
+        if (animate) {
+            menu.startAnimation(mSlideMenuRightAnim);
+        }
 
 
         menu.findViewById(R.id.overlay).setOnClickListener(new OnClickListener() {
@@ -270,10 +278,9 @@ public class SlideMenu extends LinearLayout {
 
     /** Slide the menu out. */
     public void hide() {
-        menu.startAnimation(slideMenuLeftAnim);
-        parent.removeView(menu);
+        menu.startAnimation(mSlideMenuLeftAnim);
 
-        content.startAnimation(slideContentLeftAnim);
+        content.startAnimation(mSlideContentLeftAnim);
 
         FrameLayout.LayoutParams parm = (FrameLayout.LayoutParams) content.getLayoutParams();
         parm.setMargins(0, 0, 0, 0);
@@ -285,12 +292,16 @@ public class SlideMenu extends LinearLayout {
 
 
     private void applyStatusbarOffset() {
+        // Perhaps we got this information via a restored state.
+        if (statusHeight > 0) {
+            return;
+        }
+
         Rect r = new Rect();
         Window window = act.getWindow();
         window.getDecorView().getWindowVisibleDisplayFrame(r);
         statusHeight = r.top;
     }
-
 
     //originally: http://stackoverflow.com/questions/5418510/disable-the-touch-events-for-all-the-views
     //modified for the needs here
@@ -315,78 +326,22 @@ public class SlideMenu extends LinearLayout {
         }
     }
 
-//    /**
-//     * Parses the menu.
-//     * Note: This will not clear the existing entries in the menu!
-//     * <p/>
-//     * originally: https://github.com/darvds/RibbonMenu
-//     * credit where credits due!
-//     *
-//     * @param menuResourceId Resource ID.
-//     */
-//    public void parseMenuResource(int menuResourceId) {
-//
-//        try {
-//            XmlResourceParser xpp = act.getResources().getXml(menuResourceId);
-//
-//            xpp.next();
-//            int eventType = xpp.getEventType();
-//
-//
-//            while (eventType != XmlPullParser.END_DOCUMENT) {
-//
-//                if (eventType == XmlPullParser.START_TAG) {
-//
-//                    String elemName = xpp.getName();
-//
-//                    if (elemName.equals("item")) {
-//
-//
-//                        String textId = xpp.getAttributeValue("http://schemas.android.com/apk/res/android", "title");
-//                        String iconId = xpp.getAttributeValue("http://schemas.android.com/apk/res/android", "icon");
-//                        String resId = xpp.getAttributeValue("http://schemas.android.com/apk/res/android", "id");
-//
-//                        SlideMenuItem item = new SlideMenuItem();
-//                        item.id = Integer.valueOf(resId.replace("@", ""));
-//                        item.icon = act.getResources().getDrawable(Integer.valueOf(iconId.replace("@", "")));
-//                        item.label = resourceIdToString(textId);
-//
-//                        menuItemList.add(item);
-//                    }
-//
-//                }
-//
-//                eventType = xpp.next();
-//
-//            }
-//
-//
-//        } catch (Exception e) {
-//            e.printStackTrace();
-//        }
-//
-//    }
-
-
-//    private String resourceIdToString(String text) {
-//        if (!text.contains("@")) {
-//            return text;
-//        } else {
-//            String id = text.replace("@", "");
-//            return act.getResources().getString(Integer.valueOf(id));
-//
-//        }
-//    }
-
+    public void restoreInstanceState(Parcelable state) {
+        onRestoreInstanceState(state);
+    }
 
     @Override
     protected void onRestoreInstanceState(Parcelable state) {
+        Log.d(TAG, "onRestoreInstanceState: " + state);
         try {
 
             if (state instanceof Bundle) {
                 Bundle bundle = (Bundle) state;
+                Log.d(TAG, "Got: " + bundle);
 
                 statusHeight = bundle.getInt(KEY_STATUSBARHEIGHT);
+
+                Log.d(TAG, "Height: " + statusHeight);
 
                 if (bundle.getBoolean(KEY_MENUSHOWN))
                     show(false); // show without animation
@@ -403,6 +358,9 @@ public class SlideMenu extends LinearLayout {
         }
     }
 
+    public Parcelable getInstanceState() {
+        return onSaveInstanceState();
+    }
 
     @Override
     protected Parcelable onSaveInstanceState() {
@@ -411,6 +369,26 @@ public class SlideMenu extends LinearLayout {
         bundle.putBoolean(KEY_MENUSHOWN, menuShown);
         bundle.putInt(KEY_STATUSBARHEIGHT, statusHeight);
 
+        Log.d(TAG, "onSaveInstanceState: " + bundle);
+
         return bundle;
+    }
+
+    private class FadeInInterpolator extends AccelerateInterpolator {
+        @Override
+        public float getInterpolation(float input) {
+//            Log.d(TAG, "Interpolation for point: " + input);
+//            menu.setAlpha(input);
+            return super.getInterpolation(input);
+        }
+    }
+
+    private class FadeOutInterpolator extends AccelerateDecelerateInterpolator {
+        @Override
+        public float getInterpolation(float input) {
+//            Log.d(TAG, "Interpolation for point: " + input);
+//            menu.setAlpha(1 - (input * 1.1f));
+            return super.getInterpolation(input);
+        }
     }
 }
