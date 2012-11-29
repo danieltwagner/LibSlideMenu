@@ -21,6 +21,8 @@
 
 package com.coboltforge.slidemenu;
 
+import java.lang.reflect.Method;
+
 import android.app.Activity;
 import android.content.Context;
 import android.graphics.Rect;
@@ -28,6 +30,7 @@ import android.os.Bundle;
 import android.os.Parcelable;
 import android.util.AttributeSet;
 import android.util.Log;
+import android.util.TypedValue;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -42,8 +45,6 @@ import android.widget.FrameLayout;
 import android.widget.LinearLayout;
 import android.widget.ListAdapter;
 import android.widget.ListView;
-
-import java.lang.reflect.Method;
 
 public class SlideMenu extends LinearLayout {
 
@@ -76,7 +77,6 @@ public class SlideMenu extends LinearLayout {
         this.callback = callback;
     }
 
-    //    private ArrayList<SlideMenuItem> menuItemList;
     private SlideMenuInterface.OnSlideMenuItemClickListener callback;
 
     private ListAdapter mListAdapter;
@@ -124,15 +124,10 @@ public class SlideMenu extends LinearLayout {
     public void init(Activity act) {
         this.act = act;
 
-        menuSize = (int) (act.getResources().getDisplayMetrics().widthPixels * 0.80);
-
         // set size
-//        menuSize = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 250, act.getResources().getDisplayMetrics());
+        menuSize = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 250, act.getResources().getDisplayMetrics());
 
         setSlideDuration(DEFAULT_SLIDE_DURATION);
-
-        // and get our menu
-//        menuItemList = new ArrayList<SlideMenuItem>();
     }
 
     private void setSlideDuration(int slideDuration) {
