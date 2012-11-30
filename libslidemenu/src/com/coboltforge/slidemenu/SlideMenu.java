@@ -244,7 +244,7 @@ public class SlideMenu extends LinearLayout {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
                 if (callback != null) {
-                    if (callback.onSlideMenuItemClick(id)) {
+                    if (callback.onSlideMenuItemClick(position, id)) {
                         hide();
                     }
                 } else {

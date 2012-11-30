@@ -2,7 +2,6 @@
 package com.coboltforge.slidemenuexample;
 
 import com.coboltforge.slidemenu.SlideMenu;
-import com.coboltforge.slidemenu.SlideMenu.SlideMenuItem;
 import com.coboltforge.slidemenu.SlideMenuInterface.OnSlideMenuItemClickListener;
 
 import android.app.Activity;
@@ -10,14 +9,14 @@ import android.os.Bundle;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.View.OnClickListener;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.Toast;
 
 public class MainActivity extends Activity implements OnSlideMenuItemClickListener {
 
+	private ArrayAdapter<String> adapter;
 	private SlideMenu slidemenu;
-	private final static int MYITEMID = 42;
-
 	
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
@@ -30,23 +29,18 @@ public class MainActivity extends Activity implements OnSlideMenuItemClickListen
 		 * From code or to inflate it from XML (then you have to declare it in the activities layout XML)
 		 */
 		// this is from code. no XML declaration necessary, but you won't get state restored after rotation.
-//		slidemenu = new SlideMenu(this, R.menu.slide, this, 333);
+//		slidemenu = new SlideMenu(this);
 		// this inflates the menu from XML. open/closed state will be restored after rotation, but you'll have to call init.
 		slidemenu = (SlideMenu) findViewById(R.id.slideMenu);
-		slidemenu.init(this, R.menu.slide, this, 333);
+		slidemenu.init(this);
+		
+		String[] items = new String[]{"Item One", "Item Two", "Won't close", "Item Three"};
+		adapter = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, android.R.id.text1, items);
+		slidemenu.setListAdapter(adapter);
+		slidemenu.setCallback(this);
 		
 		// this can set the menu to initially shown instead of hidden
-//		slidemenu.setAsShown(); 
-		
-		// set optional header image
-		slidemenu.setHeaderImage(R.drawable.ic_launcher);
-		
-		// this demonstrates how to dynamically add menu items
-		SlideMenuItem item = new SlideMenuItem();
-		item.id = MYITEMID;
-		item.icon = getResources().getDrawable(R.drawable.ic_launcher);
-		item.label = "Dynamically added item";
-		slidemenu.addMenuItem(item);
+//		slidemenu.setAsShown();
 		
 		// connect the fallback button in case there is no ActionBar
 		Button b = (Button) findViewById(R.id.buttonMenu);
@@ -61,26 +55,24 @@ public class MainActivity extends Activity implements OnSlideMenuItemClickListen
 
 
 	@Override
-	public void onSlideMenuItemClick(int itemId) {
+	public boolean onSlideMenuItemClick(int position, long itemId) {
 
-		switch(itemId) {
-		case R.id.item_one:
+		switch(position) {
+		case 0:
 			Toast.makeText(this, "Item one selected", Toast.LENGTH_SHORT).show();
 			break;
-		case R.id.item_two:
+		case 1:
 			Toast.makeText(this, "Item two selected", Toast.LENGTH_SHORT).show();
 			break;
-		case R.id.item_three:
-			Toast.makeText(this, "Item three selected", Toast.LENGTH_SHORT).show();
-			break;
-		case R.id.item_four:
+		case 2:
+			Toast.makeText(this, "Won't close", Toast.LENGTH_SHORT).show();
+			return false;
+		case 3:
 			Toast.makeText(this, "Item four selected", Toast.LENGTH_SHORT).show();
-			break;
-		case MYITEMID:
-			Toast.makeText(this, "Dynamically added item selected", Toast.LENGTH_SHORT).show();
 			break;
 		}
 		
+		return true;
 	}
 	
 	

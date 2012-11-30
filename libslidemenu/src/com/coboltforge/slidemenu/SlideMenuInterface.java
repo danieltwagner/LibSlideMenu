@@ -27,9 +27,10 @@ public interface SlideMenuInterface {
         /**
          * Callback function for the selected item ID.
          *
+         * @param position
          * @param itemId
          * @return true if the menu should be hidden
          */
-		public boolean onSlideMenuItemClick(long itemId);
+		public boolean onSlideMenuItemClick(int position, long itemId);
 	}
 }
