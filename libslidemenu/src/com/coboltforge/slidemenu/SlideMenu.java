@@ -130,7 +130,7 @@ public class SlideMenu extends LinearLayout {
         setSlideDuration(DEFAULT_SLIDE_DURATION);
     }
 
-    private void setSlideDuration(int slideDuration) {
+    public void setSlideDuration(int slideDuration) {
         if (mSlideDuration == slideDuration) {
             return;
         }
